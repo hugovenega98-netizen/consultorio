@@ -1,4 +1,4 @@
-# Consultorio MVP v0.3
+# Consultorio MVP v0.3.1
 
 Aplicación web para trabajar desde dos computadoras sobre la misma base Neon.
 
@@ -10,6 +10,7 @@ Aplicación web para trabajar desde dos computadoras sobre la misma base Neon.
 - Carga pacientes con DNI, nombre, apellido, teléfono y dirección.
 - Abre el perfil e historial de consultas finalizadas.
 - Envía pacientes a la cola del doctor.
+- Puede limpiar toda la queue con confirmación previa.
 - Tiene la pestaña **Repeticiones**.
 - Exporta las consultas finalizadas del día a `.docx`.
 
@@ -123,3 +124,7 @@ Abrir `http://localhost:3000`.
 ## Salud de la base
 
 `/api/health` debe responder con `database: connected` cuando la conexión a Neon está correcta.
+
+## Limpieza de queue
+
+Recepción dispone del botón **Limpiar queue**. La acción pide confirmación, elimina todas las entradas de `QueueItem` y marca como `CANCELLED` las consultas que todavía estaban `QUEUED` o `IN_PROGRESS`, de modo que esos pacientes puedan volver a enviarse a la cola. No elimina pacientes, consultas finalizadas, medicaciones ni repeticiones.

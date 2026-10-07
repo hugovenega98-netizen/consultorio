@@ -32,3 +32,33 @@ export async function GET() {
 
   return NextResponse.json({ waiting: waiting.map(mapRow), inProgress: inProgress.map(mapRow) });
 }
+
+export async function DELETE() {
+  const auth = await getApiUser(["RECEPTION"]);
+  if (!auth.user) return NextResponse.json({ error: auth.error }, { status: auth.status });
+
+  const result = await prisma.$transaction(async (tx) => {
+    const items = await tx.queueItem.findMany({
+      select: { consultationId: true, status: true },
+    });
+
+    const activeConsultationIds = items
+      .filter((item) => item.status === "WAITING" || item.status === "IN_PROGRESS")
+      .map((item) => item.consultationId);
+
+    if (activeConsultationIds.length > 0) {
+      await tx.consultation.updateMany({
+        where: {
+          id: { in: activeConsultationIds },
+          status: { in: ["QUEUED", "IN_PROGRESS"] },
+        },
+        data: { status: "CANCELLED" },
+      });
+    }
+
+    const deleted = await tx.queueItem.deleteMany({});
+    return { deleted: deleted.count, cancelledConsultations: activeConsultationIds.length };
+  });
+
+  return NextResponse.json({ ok: true, ...result });
+}

@@ -95,6 +95,27 @@ export function ReceptionDashboard({ initialPatients }: { initialPatients: Patie
     await refreshQueue();
   }
 
+  async function clearQueue() {
+    const confirmed = window.confirm(
+      "¿Seguro que querés limpiar toda la queue? Se quitarán todos los pacientes en espera y en atención. Los pacientes y las consultas ya finalizadas no se borran.",
+    );
+    if (!confirmed) return;
+
+    setLoading(true);
+    setMessage("");
+    const response = await fetch("/api/queue", { method: "DELETE" });
+    const result = await response.json();
+    setLoading(false);
+
+    if (!response.ok) {
+      setMessage(result.error ?? "No se pudo limpiar la queue.");
+      return;
+    }
+
+    setMessage(result.deleted > 0 ? `Queue limpiada: ${result.deleted} entrada(s) eliminada(s).` : "La queue ya estaba vacía.");
+    await refreshQueue();
+  }
+
   const activeIds = new Set([
     ...queue.waiting.map((item) => item.patient.id),
     ...queue.inProgress.map((item) => item.patient.id),
@@ -138,7 +159,12 @@ export function ReceptionDashboard({ initialPatients }: { initialPatients: Patie
         </section>
 
         <section className="card">
-          <h2>Cola</h2>
+          <div className="queue-heading">
+            <h2>Cola</h2>
+            <button className="btn btn-danger" type="button" disabled={loading} onClick={clearQueue}>
+              Limpiar queue
+            </button>
+          </div>
           {queue.inProgress[0] && (
             <div className="compact-status">
               <span className="badge progress">EN ATENCIÓN</span>

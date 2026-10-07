@@ -123,3 +123,10 @@ textarea { min-height: 170px; resize: vertical; }
   .row-actions .btn { flex: 1; }
   .info-grid { grid-template-columns: 1fr; }
 }
+
+.queue-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.queue-heading h2 { margin-bottom: 0; }
+
+@media (max-width: 520px) {
+  .queue-heading { align-items: stretch; flex-direction: column; }
+}
