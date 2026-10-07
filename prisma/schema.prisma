@@ -1,0 +1,74 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ConsultationStatus {
+  QUEUED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum QueueStatus {
+  WAITING
+  IN_PROGRESS
+  DONE
+  CANCELLED
+}
+
+model Patient {
+  id            String         @id @default(cuid())
+  dni           String         @unique
+  firstName     String
+  lastName      String
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  consultations Consultation[]
+
+  @@index([lastName, firstName])
+}
+
+model Consultation {
+  id           String             @id @default(cuid())
+  patientId    String
+  observations String             @default("")
+  status       ConsultationStatus @default(QUEUED)
+  createdAt    DateTime           @default(now())
+  startedAt    DateTime?
+  completedAt  DateTime?
+  updatedAt    DateTime           @updatedAt
+  patient      Patient            @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  medications  Medication[]
+  queueItem    QueueItem?
+
+  @@index([patientId, createdAt])
+  @@index([status, createdAt])
+}
+
+model Medication {
+  id             String       @id @default(cuid())
+  consultationId String
+  name           String
+  position       Int
+  consultation   Consultation @relation(fields: [consultationId], references: [id], onDelete: Cascade)
+
+  @@unique([consultationId, position])
+  @@index([consultationId])
+}
+
+model QueueItem {
+  id             String       @id @default(cuid())
+  consultationId String       @unique
+  status         QueueStatus  @default(WAITING)
+  queuedAt       DateTime     @default(now())
+  startedAt      DateTime?
+  completedAt    DateTime?
+  consultation   Consultation @relation(fields: [consultationId], references: [id], onDelete: Cascade)
+
+  @@index([status, queuedAt])
+}
