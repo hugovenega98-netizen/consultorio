@@ -7,7 +7,7 @@ import { RepetitionForm } from "@/components/RepetitionForm";
 
 export const dynamic = "force-dynamic";
 
-export default async function NewRepetitionPage({
+export default async function RepetitionHistoryPage({
   params,
   searchParams,
 }: {
@@ -35,30 +35,33 @@ export default async function NewRepetitionPage({
     <div>
       <div className="actions" style={{ marginTop: 0, marginBottom: 16 }}>
         <Link className="btn" href="/reception/repetitions">← Repeticiones</Link>
-        <Link className="btn" href={`/patients/${patient.id}`}>Ver perfil</Link>
       </div>
       <h1>{patient.firstName} {patient.lastName}</h1>
-      <p className="muted">DNI {formatDni(patient.dni)} · {source ? "Repetir una repetición anterior" : "Nueva repetición"}</p>
+      <p className="muted">DNI {formatDni(patient.dni)} · Historial exclusivo de repeticiones</p>
 
       {source && (
-        <div className="notice success">Datos copiados de la repetición del {formatDateTime(source.createdAt)}. Podés modificarlos antes de guardar.</div>
+        <>
+          <div className="notice success">Datos copiados de la repetición del {formatDateTime(source.createdAt)}. Podés modificarlos antes de guardarlos en la tanda actual.</div>
+          <RepetitionForm
+            patientId={patient.id}
+            initialObservations={source.observations}
+            initialMedications={source.medications.map((medication) => medication.name)}
+          />
+        </>
       )}
 
-      <RepetitionForm
-        patientId={patient.id}
-        initialObservations={source?.observations ?? ""}
-        initialMedications={source?.medications.map((medication) => medication.name) ?? []}
-      />
-
-      <section className="card" style={{ marginTop: 20 }}>
+      <section className="card" style={{ marginTop: source ? 20 : 0 }}>
         <h2>Historial de repeticiones</h2>
         <div className="history">
           {patient.repetitions.length === 0 && <p className="muted">Todavía no tiene repeticiones.</p>}
           {patient.repetitions.map((repetition) => (
             <article className="history-entry" key={repetition.id}>
               <div className="history-entry-heading">
-                <h3>{formatDateTime(repetition.createdAt)}</h3>
-                <Link className="btn" href={`/reception/repetitions/${patient.id}?copy=${repetition.id}`}>Repetir</Link>
+                <div>
+                  <h3>{formatDateTime(repetition.createdAt)}</h3>
+                  <div className="muted">{repetition.clearedAt ? "Tanda cerrada" : "En lista actual"}</div>
+                </div>
+                <Link className="btn" href={`/reception/repetitions/${patient.id}?copy=${repetition.id}`}>Repetir esta</Link>
               </div>
               <p><strong>Observaciones:</strong> {repetition.observations || "Sin observaciones."}</p>
               <ul className="med-list">{repetition.medications.map((medication) => <li key={medication.id}>{medication.name}</li>)}</ul>

@@ -10,6 +10,7 @@ export const dynamic = "force-dynamic";
 export default async function ConsultationPage({ params }: { params: Promise<{ id: string }> }) {
   await requirePageUser(["DOCTOR"]);
   const { id } = await params;
+
   const consultation = await prisma.consultation.findUnique({
     where: { id },
     include: { patient: true, medications: { orderBy: { position: "asc" } } },
@@ -30,55 +31,65 @@ export default async function ConsultationPage({ params }: { params: Promise<{ i
   });
 
   const previousConsultation = recentConsultations[0] ?? null;
-  const recentMedicationNames = Array.from(new Set(
-    recentConsultations.flatMap((item) => item.medications.map((medication) => medication.name)),
-  ));
+  const isFirstConsultation = previousConsultation === null;
+
+  const firstCompletedConsultation = isFirstConsultation
+    ? null
+    : await prisma.consultation.findFirst({
+        where: {
+          patientId: consultation.patientId,
+          status: "COMPLETED",
+        },
+        orderBy: [{ completedAt: "asc" }, { createdAt: "asc" }],
+        select: {
+          motivoConsulta: true,
+          antecedentesPersonales: true,
+        },
+      });
+
+  const recentMedicationNames = Array.from(
+    new Set(recentConsultations.flatMap((item) => item.medications.map((medication) => medication.name))),
+  );
+
   const completed = consultation.status === "COMPLETED";
 
   return (
-    <div>
-      <div className="actions" style={{ marginTop: 0, marginBottom: 16 }}>
+    <div className="consultation-page">
+      <div className="actions consultation-back" style={{ marginTop: 0 }}>
         <Link className="btn" href="/doctor">← Puesto de consulta</Link>
       </div>
-      <h1>{consultation.patient.firstName} {consultation.patient.lastName}</h1>
-      <p className="muted">DNI {formatDni(consultation.patient.dni)} · Consulta {formatDateTime(consultation.createdAt)}</p>
 
-      <section className="card previous-consultation">
-        <div className="previous-heading">
-          <h2>Última consulta</h2>
-          {previousConsultation && <span className="muted">{formatDateTime(previousConsultation.completedAt ?? previousConsultation.createdAt)}</span>}
-        </div>
-        {previousConsultation ? (
-          <>
-            <p><strong>Observaciones:</strong> {previousConsultation.observations || "Sin observaciones."}</p>
-            <div>
-              <strong>Medicaciones:</strong>
-              <ul className="med-list">
-                {previousConsultation.medications.length === 0 && <li>Sin medicaciones cargadas</li>}
-                {previousConsultation.medications.map((med) => <li key={med.id}>{med.name}</li>)}
-              </ul>
-            </div>
-          </>
-        ) : (
-          <p className="muted">Este paciente no tiene una consulta anterior finalizada.</p>
-        )}
-      </section>
-
-      <section className="card recent-medications-card">
-        <h2>Medicaciones recientes</h2>
-        <p className="muted">Resumen único de las últimas 3 consultas finalizadas.</p>
-        <ul className="med-list">
-          {recentMedicationNames.length === 0 && <li>Sin medicaciones previas</li>}
-          {recentMedicationNames.map((name) => <li key={name}>{name}</li>)}
-        </ul>
-      </section>
-
-      {completed && <div className="notice success">Esta consulta está finalizada y queda en modo lectura.</div>}
       <ConsultationForm
         consultationId={consultation.id}
+        patientName={`${consultation.patient.firstName} ${consultation.patient.lastName}`}
+        patientDni={formatDni(consultation.patient.dni)}
+        consultationDate={formatDateTime(consultation.createdAt)}
+        isFirstConsultation={isFirstConsultation}
+        referenceMotivoConsulta={firstCompletedConsultation?.motivoConsulta ?? consultation.motivoConsulta}
+        referenceAntecedentesPersonales={firstCompletedConsultation?.antecedentesPersonales ?? consultation.antecedentesPersonales}
+        initialMotivoConsulta={consultation.motivoConsulta}
+        initialAntecedentesPersonales={consultation.antecedentesPersonales}
+        initialActividadFisica={consultation.actividadFisica}
+        initialCatarsis={consultation.catarsis}
+        initialDiuresis={consultation.diuresis}
+        initialAnsiedad={consultation.ansiedad}
+        initialTensionArterial={consultation.tensionArterial}
+        initialPeso={consultation.peso}
         initialObservations={consultation.observations}
         initialMedications={consultation.medications.map((m) => m.name)}
         previousMedications={previousConsultation?.medications.map((m) => m.name) ?? []}
+        previousConsultation={previousConsultation ? {
+          date: formatDateTime(previousConsultation.completedAt ?? previousConsultation.createdAt),
+          actividadFisica: previousConsultation.actividadFisica,
+          catarsis: previousConsultation.catarsis,
+          diuresis: previousConsultation.diuresis,
+          ansiedad: previousConsultation.ansiedad,
+          tensionArterial: previousConsultation.tensionArterial,
+          peso: previousConsultation.peso,
+          observations: previousConsultation.observations,
+          medications: previousConsultation.medications.map((m) => m.name),
+        } : null}
+        recentMedicationNames={recentMedicationNames}
         isCompleted={completed}
       />
     </div>

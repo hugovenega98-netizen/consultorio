@@ -143,7 +143,6 @@ export function ReceptionDashboard({ initialPatients }: { initialPatients: Patie
           <h1>Recepción</h1>
           <p className="muted">Pacientes, altas y envío a la cola de atención.</p>
         </div>
-        <Link className="btn" href="/reception/repetitions">Repeticiones</Link>
       </div>
 
       {message && <div className={`notice ${message.includes("quedó") || message.includes("cargado") || message.includes("limpiada") || message.includes("vacía") ? "success" : "error"}`}>{message}</div>}
@@ -218,7 +217,6 @@ export function ReceptionDashboard({ initialPatients }: { initialPatients: Patie
               </div>
               <div className="actions row-actions">
                 <Link className="btn" href={`/patients/${patient.id}`}>Ver perfil</Link>
-                <Link className="btn" href={`/reception/repetitions/${patient.id}`}>Repetición</Link>
                 <button className="btn btn-primary" disabled={loading || activeIds.has(patient.id)} onClick={() => enqueue(patient.id)}>
                   {activeIds.has(patient.id) ? "En cola" : "Enviar a cola"}
                 </button>

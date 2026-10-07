@@ -94,14 +94,14 @@ function objectBuffer(id: number, body: string | Buffer) {
   return Buffer.concat([prefix, middle, suffix]);
 }
 
-export function createConsultationsPdf(dateLabel: string, rows: PdfRow[]) {
+export function createMedicationListPdf(title: string, subtitle: string, rows: PdfRow[]) {
   const headers = ["Paciente", "Medicación 1", "Medicación 2", "Medicación 3", "Medicación 4", "Medicación 5"];
   const pages: string[] = [];
   let index = 0;
   do {
     const page = buildPageContent(
-      `Consultas - ${dateLabel}`,
-      `${rows.length} consulta(s) finalizada(s)`,
+      title,
+      subtitle,
       headers,
       rows,
       index,
@@ -156,4 +156,9 @@ export function createConsultationsPdf(dateLabel: string, rows: PdfRow[]) {
   xref += `trailer\n<< /Size ${objectCount + 1} /Root ${catalogId} 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`;
   chunks.push(Buffer.from(xref, "latin1"));
   return Buffer.concat(chunks);
+}
+
+
+export function createConsultationsPdf(dateLabel: string, rows: PdfRow[]) {
+  return createMedicationListPdf(`Consultas - ${dateLabel}`, `${rows.length} consulta(s) finalizada(s)`, rows);
 }

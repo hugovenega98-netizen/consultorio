@@ -18,10 +18,6 @@ export default async function PatientProfile({ params }: { params: Promise<{ id:
         orderBy: { completedAt: "desc" },
         include: { medications: { orderBy: { position: "asc" } } },
       },
-      repetitions: {
-        orderBy: { createdAt: "desc" },
-        include: { medications: { orderBy: { position: "asc" } } },
-      },
     },
   });
 
@@ -31,7 +27,6 @@ export default async function PatientProfile({ params }: { params: Promise<{ id:
     <div>
       <div className="actions" style={{ marginTop: 0, marginBottom: 16 }}>
         <Link className="btn" href="/reception">← Pacientes</Link>
-        <Link className="btn" href={`/reception/repetitions/${patient.id}`}>Nueva repetición</Link>
       </div>
       <h1>{patient.firstName} {patient.lastName}</h1>
       <p className="muted">DNI {formatDni(patient.dni)} · {patient.consultations.length} consultas registradas</p>
@@ -53,6 +48,20 @@ export default async function PatientProfile({ params }: { params: Promise<{ id:
           {patient.consultations.map((consultation) => (
             <article className="history-entry" key={consultation.id}>
               <h3>{formatDateTime(consultation.completedAt ?? consultation.createdAt)}</h3>
+              {(consultation.motivoConsulta || consultation.antecedentesPersonales) && (
+                <div className="history-clinical-text">
+                  {consultation.motivoConsulta && <p><strong>MC:</strong> {consultation.motivoConsulta}</p>}
+                  {consultation.antecedentesPersonales && <p><strong>AP:</strong> {consultation.antecedentesPersonales}</p>}
+                </div>
+              )}
+              <div className="clinical-summary-grid">
+                <div><span className="muted">AF</span><strong>{consultation.actividadFisica === null ? "—" : consultation.actividadFisica > 0 ? `+${consultation.actividadFisica}` : consultation.actividadFisica}</strong></div>
+                <div><span className="muted">C</span><strong>{consultation.catarsis === null ? "—" : consultation.catarsis > 0 ? `+${consultation.catarsis}` : consultation.catarsis}</strong></div>
+                <div><span className="muted">D</span><strong>{consultation.diuresis === null ? "—" : consultation.diuresis > 0 ? `+${consultation.diuresis}` : consultation.diuresis}</strong></div>
+                <div><span className="muted">A</span><strong>{consultation.ansiedad === null ? "—" : consultation.ansiedad > 0 ? `+${consultation.ansiedad}` : consultation.ansiedad}</strong></div>
+                <div><span className="muted">T/A</span><strong>{consultation.tensionArterial || "—"}</strong></div>
+                <div><span className="muted">Peso</span><strong>{consultation.peso === null ? "—" : `${consultation.peso} kg`}</strong></div>
+              </div>
               <p><strong>Observaciones:</strong> {consultation.observations || "Sin observaciones."}</p>
               <ul className="med-list">
                 {consultation.medications.length === 0 && <li>Sin medicaciones cargadas</li>}
@@ -63,25 +72,6 @@ export default async function PatientProfile({ params }: { params: Promise<{ id:
         </div>
       </section>
 
-      <section className="card" style={{ marginTop: 20 }}>
-        <h2>Historial de repeticiones</h2>
-        <p className="muted">Este historial se mantiene separado de las consultas.</p>
-        <div className="history">
-          {patient.repetitions.length === 0 && <p className="muted">Todavía no tiene repeticiones.</p>}
-          {patient.repetitions.map((repetition) => (
-            <article className="history-entry" key={repetition.id}>
-              <div className="history-entry-heading">
-                <h3>{formatDateTime(repetition.createdAt)}</h3>
-                <Link className="btn" href={`/reception/repetitions/${patient.id}?copy=${repetition.id}`}>Repetir</Link>
-              </div>
-              <p><strong>Observaciones:</strong> {repetition.observations || "Sin observaciones."}</p>
-              <ul className="med-list">
-                {repetition.medications.map((med) => <li key={med.id}>{med.name}</li>)}
-              </ul>
-            </article>
-          ))}
-        </div>
-      </section>
     </div>
   );
 }

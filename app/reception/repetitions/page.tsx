@@ -1,66 +1,58 @@
-import Link from "next/link";
 import { requirePageUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { formatDateTime, formatDni } from "@/lib/format";
+import { RepetitionsDashboard } from "@/components/RepetitionsDashboard";
 
 export const dynamic = "force-dynamic";
 
 export default async function RepetitionsPage() {
   await requirePageUser(["RECEPTION", "ADMIN"]);
-  const [patients, repetitions] = await Promise.all([
-    prisma.patient.findMany({ orderBy: [{ lastName: "asc" }, { firstName: "asc" }] }),
+
+  const [patients, activeRepetitions] = await Promise.all([
+    prisma.patient.findMany({
+      orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+      include: {
+        consultations: {
+          where: { status: "COMPLETED" },
+          orderBy: [{ completedAt: "desc" }, { createdAt: "desc" }],
+          take: 1,
+          include: { medications: { orderBy: { position: "asc" } } },
+        },
+      },
+    }),
     prisma.repetition.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 30,
-      include: { patient: true, medications: { orderBy: { position: "asc" } } },
+      where: { clearedAt: null },
+      orderBy: { createdAt: "asc" },
+      include: {
+        patient: true,
+        medications: { orderBy: { position: "asc" } },
+      },
     }),
   ]);
 
+  const activePatientIds = new Set(activeRepetitions.map((item) => item.patientId));
+
   return (
-    <div>
-      <div className="page-heading">
-        <div>
-          <h1>Repeticiones</h1>
-          <p className="muted">Se guardan aparte y no aparecen como consultas realizadas.</p>
-        </div>
-        <Link className="btn" href="/reception">← Pacientes</Link>
-      </div>
-
-      <section className="card">
-        <h2>Nueva repetición</h2>
-        <p className="muted">Elegí el paciente para abrir el formulario de observaciones y medicaciones.</p>
-        <div className="patient-list compact-patients">
-          {patients.map((patient) => (
-            <div className="patient-row" key={patient.id}>
-              <div>
-                <div className="patient-name">{patient.lastName}, {patient.firstName}</div>
-                <div className="muted">DNI {formatDni(patient.dni)}</div>
-              </div>
-              <Link className="btn btn-primary" href={`/reception/repetitions/${patient.id}`}>Cargar repetición</Link>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="card" style={{ marginTop: 20 }}>
-        <h2>Últimas repeticiones</h2>
-        <div className="history">
-          {repetitions.length === 0 && <p className="muted">Todavía no hay repeticiones registradas.</p>}
-          {repetitions.map((repetition) => (
-            <article className="history-entry" key={repetition.id}>
-              <h3>{repetition.patient.firstName} {repetition.patient.lastName}</h3>
-              <div className="muted">{formatDateTime(repetition.createdAt)} · DNI {formatDni(repetition.patient.dni)}</div>
-              <div className="history-entry-heading">
-                <p><strong>Observaciones:</strong> {repetition.observations || "Sin observaciones."}</p>
-                <Link className="btn" href={`/reception/repetitions/${repetition.patient.id}?copy=${repetition.id}`}>Repetir</Link>
-              </div>
-              <ul className="med-list">
-                {repetition.medications.map((med) => <li key={med.id}>{med.name}</li>)}
-              </ul>
-            </article>
-          ))}
-        </div>
-      </section>
-    </div>
+    <RepetitionsDashboard
+      initialPatients={patients
+        .filter((patient) => !activePatientIds.has(patient.id))
+        .map((patient) => ({
+          id: patient.id,
+          dni: patient.dni,
+          firstName: patient.firstName,
+          lastName: patient.lastName,
+          phone: patient.phone,
+          lastMedications: patient.consultations[0]?.medications.map((medication) => medication.name) ?? [],
+        }))}
+      initialActive={activeRepetitions.map((repetition) => ({
+        id: repetition.id,
+        patient: {
+          id: repetition.patient.id,
+          dni: repetition.patient.dni,
+          firstName: repetition.patient.firstName,
+          lastName: repetition.patient.lastName,
+        },
+        medications: repetition.medications.map((medication) => medication.name),
+      }))}
+    />
   );
 }

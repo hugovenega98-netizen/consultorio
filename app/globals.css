@@ -175,3 +175,77 @@ select:focus { outline: 3px solid rgba(23,107,117,.13); border-color: var(--prim
   .user-row .row-actions { justify-content: stretch; }
   .section-heading-inline { display: grid; }
 }
+
+/* v0.4.2 - campos clínicos por consulta */
+.consultation-section { margin-top: 20px; }
+.consultation-section:first-child { margin-top: 0; }
+.consultation-section + .consultation-section { padding-top: 20px; border-top: 1px solid var(--border); }
+.clinical-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.clinical-text-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.clinical-text-grid textarea { min-height: 120px; }
+.clinical-summary-grid { display: grid; grid-template-columns: repeat(6, minmax(80px, 1fr)); gap: 10px; margin: 14px 0; }
+.clinical-summary-grid > div { display: grid; gap: 3px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: #f8fafb; }
+.previous-clinical-block, .history-clinical-text { margin-top: 12px; }
+.previous-clinical-block p, .history-clinical-text p { margin: 6px 0; }
+
+@media (max-width: 800px) {
+  .clinical-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .clinical-text-grid { grid-template-columns: 1fr; }
+  .clinical-summary-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 520px) {
+  .clinical-grid, .clinical-summary-grid { grid-template-columns: 1fr; }
+}
+
+/* v0.4.3 - reorganización de la pantalla de consulta */
+.consultation-page { max-width: 1320px; margin: 0 auto; }
+.consultation-back { margin-bottom: 14px; }
+.consultation-workspace { display: grid; gap: 16px; }
+.consultation-patient-card {
+  display: flex; align-items: center; justify-content: space-between; gap: 18px;
+  border-left: 5px solid var(--primary);
+}
+.consultation-patient-card h1 { margin: 2px 0 4px; }
+.consultation-patient-card p { margin: 0; }
+.consultation-eyebrow {
+  display: block; color: var(--primary); text-transform: uppercase; letter-spacing: .08em; font-size: 12px; font-weight: 850;
+}
+.consultation-initial-details { padding-top: 18px; }
+.consultation-reference-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.reference-detail { border: 1px solid var(--border); background: #f8fafb; border-radius: 12px; padding: 14px; }
+.reference-detail > span { display: block; font-weight: 800; margin-bottom: 7px; }
+.reference-detail p { margin: 0; white-space: pre-wrap; }
+.consultation-layout { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(340px, .8fr); gap: 18px; align-items: start; }
+.consultation-main-column, .consultation-side-column { min-width: 0; }
+.consultation-side-column { display: grid; gap: 16px; position: sticky; top: 82px; }
+.consultation-side-column .card + .card { margin-top: 0; }
+.consultation-current-card { padding: 22px; }
+.consultation-section-first { margin-top: 0; }
+.consultation-scale-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.consultation-vitals-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 14px; }
+.consultation-copy-section { display: flex; justify-content: flex-start; }
+.consultation-actions { padding-top: 20px; border-top: 1px solid var(--border); }
+.consultation-previous-card { margin: 0; border-left: 5px solid var(--primary); }
+.consultation-previous-summary { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.previous-observations { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
+.previous-observations p { margin: 7px 0 0; white-space: pre-wrap; }
+.previous-medications { margin-top: 16px; }
+.consultation-recent-card { margin-bottom: 0; }
+
+@media (max-width: 1050px) {
+  .consultation-layout { grid-template-columns: minmax(0, 1fr) 340px; }
+  .consultation-scale-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 860px) {
+  .consultation-layout { grid-template-columns: 1fr; }
+  .consultation-side-column { position: static; }
+  .consultation-reference-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 560px) {
+  .consultation-patient-card { align-items: flex-start; flex-direction: column; }
+  .consultation-scale-grid, .consultation-vitals-grid, .consultation-previous-summary { grid-template-columns: 1fr; }
+  .consultation-current-card { padding: 16px; }
+}

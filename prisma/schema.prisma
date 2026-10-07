@@ -44,10 +44,18 @@ model Patient {
 }
 
 model Consultation {
-  id           String             @id @default(cuid())
-  patientId    String
-  observations String             @default("")
-  status       ConsultationStatus @default(QUEUED)
+  id                     String             @id @default(cuid())
+  patientId              String
+  motivoConsulta         String             @default("")
+  antecedentesPersonales String             @default("")
+  actividadFisica        Int?
+  catarsis                Int?
+  diuresis                Int?
+  ansiedad                Int?
+  tensionArterial         String             @default("")
+  peso                    Float?
+  observations            String             @default("")
+  status                  ConsultationStatus @default(QUEUED)
   createdAt    DateTime           @default(now())
   startedAt    DateTime?
   completedAt  DateTime?
@@ -77,11 +85,14 @@ model Repetition {
   observations String                 @default("")
   createdAt    DateTime               @default(now())
   updatedAt    DateTime               @updatedAt
+  clearedAt    DateTime?
+  activeKey    String?                @unique
   patient      Patient                @relation(fields: [patientId], references: [id], onDelete: Cascade)
   medications  RepetitionMedication[]
 
   @@index([patientId, createdAt])
   @@index([createdAt])
+  @@index([clearedAt, createdAt])
 }
 
 model RepetitionMedication {
