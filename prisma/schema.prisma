@@ -21,14 +21,22 @@ enum QueueStatus {
   CANCELLED
 }
 
+enum UserRole {
+  RECEPTION
+  DOCTOR
+}
+
 model Patient {
   id            String         @id @default(cuid())
   dni           String         @unique
   firstName     String
   lastName      String
+  phone         String         @default("")
+  address       String         @default("")
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   consultations Consultation[]
+  repetitions   Repetition[]
 
   @@index([lastName, firstName])
 }
@@ -61,6 +69,30 @@ model Medication {
   @@index([consultationId])
 }
 
+model Repetition {
+  id           String                 @id @default(cuid())
+  patientId    String
+  observations String                 @default("")
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+  patient      Patient                @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  medications  RepetitionMedication[]
+
+  @@index([patientId, createdAt])
+  @@index([createdAt])
+}
+
+model RepetitionMedication {
+  id           String     @id @default(cuid())
+  repetitionId String
+  name         String
+  position     Int
+  repetition   Repetition @relation(fields: [repetitionId], references: [id], onDelete: Cascade)
+
+  @@unique([repetitionId, position])
+  @@index([repetitionId])
+}
+
 model QueueItem {
   id             String       @id @default(cuid())
   consultationId String       @unique
@@ -71,4 +103,28 @@ model QueueItem {
   consultation   Consultation @relation(fields: [consultationId], references: [id], onDelete: Cascade)
 
   @@index([status, queuedAt])
+}
+
+model User {
+  id           String    @id @default(cuid())
+  username     String    @unique
+  displayName  String
+  passwordHash String
+  role         UserRole
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  sessions     Session[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
 }

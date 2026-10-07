@@ -1,242 +1,125 @@
-# Consultorio MVP — Vercel + Neon
+# Consultorio MVP v0.3
 
-MVP web para trabajar desde dos computadoras sobre la misma base de datos.
+Aplicación web para trabajar desde dos computadoras sobre la misma base Neon.
 
-## Qué incluye
+## Roles
 
-- Pacientes identificados por DNI, nombre y apellido.
-- Una o muchas consultas por paciente.
-- Observaciones por consulta.
-- Entre 1 y 5 medicaciones por consulta.
-- Historial completo desde el perfil del paciente.
-- Cola compartida entre computadoras.
-- Botón **SIGUIENTE** que toma el primer paciente en espera de forma atómica.
-- Actualización automática de la cola cada 2,5 segundos.
-- Exportación diaria a `.docx` con paciente + hasta 5 medicaciones en columnas horizontales.
-- PostgreSQL mediante Prisma.
-- Preparado para desplegar en Vercel y usar Neon PostgreSQL.
-- `/api/health` para comprobar rápidamente si Vercel llega a la base.
+### Recepción (`RECEPTION`)
+- Ve todos los pacientes cargados.
+- Busca por DNI, nombre o apellido.
+- Carga pacientes con DNI, nombre, apellido, teléfono y dirección.
+- Abre el perfil e historial de consultas finalizadas.
+- Envía pacientes a la cola del doctor.
+- Tiene la pestaña **Repeticiones**.
+- Exporta las consultas finalizadas del día a `.docx`.
 
----
+### Doctor (`DOCTOR`)
+- Ve solamente el puesto de consulta.
+- Botón **Siguiente** para tomar el primer paciente en espera.
+- Abre la consulta actual.
+- Durante la consulta ve la **última consulta finalizada anterior** de ese paciente, con observaciones y medicaciones.
+- No ve contador de consultas realizadas ni administración de pacientes.
 
-## Opción recomendada: Vercel + Neon
+## Repeticiones
 
-### 1. Crear la base en Neon
+Las repeticiones usan un formulario con observaciones y hasta cinco medicaciones, pero se guardan en tablas independientes (`Repetition` y `RepetitionMedication`).
 
-1. Crear un proyecto PostgreSQL en Neon.
-2. Crear/usar una base (por ejemplo `neondb`).
-3. Copiar dos cadenas de conexión:
-   - **Pooled connection** → `DATABASE_URL`
-   - **Direct connection** → `DIRECT_URL`
+Por diseño:
+- no aparecen en el historial de consultas del paciente;
+- no cuentan como consulta realizada;
+- no entran en el `.docx` diario de consultas;
+- sí quedan relacionadas al paciente y visibles desde la pestaña **Repeticiones** de Recepción.
 
-La URL pooled normalmente tiene `-pooler` en el host. La directa no.
+## Stack
 
-Ejemplo conceptual:
+- Next.js 16
+- React 19
+- Prisma 7
+- PostgreSQL / Neon
+- Vercel
+- Node.js 22+
+
+## Variables de entorno
 
 ```env
-DATABASE_URL="postgresql://usuario:clave@ep-xxxx-pooler.region.aws.neon.tech/neondb?sslmode=require"
-DIRECT_URL="postgresql://usuario:clave@ep-xxxx.region.aws.neon.tech/neondb?sslmode=require"
+DATABASE_URL="URL_POOLED_DE_NEON"
+DIRECT_URL="URL_DIRECTA_DE_NEON"
+
+RECEPTION_USERNAME="recep"
+RECEPTION_PASSWORD="cambia-esta-clave"
+DOCTOR_USERNAME="doc"
+DOCTOR_PASSWORD="cambia-esta-clave"
 ```
 
-No subas el archivo `.env` a Git.
+`DATABASE_URL` debe ser la URL pooled de Neon (normalmente contiene `-pooler`).
+`DIRECT_URL` es la conexión directa de Neon.
 
-### 2. Subir el proyecto a GitHub
+Si no configurás las variables de usuarios, el seed usa temporalmente:
+- Recepción: `recep` / `recep1234`
+- Doctor: `doc` / `doc1234`
 
-Desde esta carpeta:
+## Deploy sobre un proyecto Vercel ya existente
+
+1. Agregá en **Vercel → Project → Settings → Environment Variables**:
+   - `RECEPTION_USERNAME`
+   - `RECEPTION_PASSWORD`
+   - `DOCTOR_USERNAME`
+   - `DOCTOR_PASSWORD`
+2. Conservá `DATABASE_URL` y `DIRECT_URL` que ya funcionan.
+3. Reemplazá el contenido del repo por esta versión.
+4. Ejecutá:
 
 ```bash
-git init
 git add .
-git commit -m "MVP consultorio Vercel Neon"
-git branch -M main
-git remote add origin TU_REPO
-git push -u origin main
+git commit -m "Roles doctor recepcion y repeticiones"
+git push
 ```
 
-> Si ya existe un repositorio, omití `git init` y configurá el remote correspondiente.
+5. Vercel hará automáticamente:
 
-### 3. Importar en Vercel
-
-1. Vercel → **Add New → Project**.
-2. Importar el repositorio de GitHub.
-3. Framework: Next.js (Vercel lo detecta automáticamente).
-4. Agregar variables de entorno:
-
-```text
-DATABASE_URL = URL POOLED de Neon
-DIRECT_URL   = URL DIRECTA de Neon
-```
-
-Agregalas al menos en **Production**. Para previews, agregalas también en Preview si querés que funcionen.
-
-5. Deploy.
-
-El `vercel.json` ya ejecuta:
-
-```text
-npm run vercel-build
-```
-
-que hace:
-
-```text
+```bash
 prisma generate
 prisma migrate deploy
+prisma db seed
 next build
 ```
 
-La región de funciones se configura como `gru1` (São Paulo), conveniente para Argentina.
+Las nuevas migraciones agregan:
+- campos teléfono/dirección;
+- usuarios, roles y sesiones;
+- repeticiones y sus medicaciones.
 
-### 4. Probar el deployment
+## Probar dos computadoras
 
-Abrí:
+En PC 1:
+1. Abrí la URL pública de Vercel.
+2. Iniciá sesión como Recepción.
+3. Creá o elegí un paciente.
+4. Tocá **Enviar a cola**.
 
-```text
-https://TU-PROYECTO.vercel.app/api/health
-```
+En PC 2:
+1. Abrí exactamente la misma URL pública de Vercel.
+2. Iniciá sesión como Doctor.
+3. El paciente aparecerá como próximo en unos segundos.
+4. Tocá **Siguiente**.
+5. Se abre su consulta y arriba aparece su última consulta previa, si existe.
+6. Cargá observaciones/medicaciones y finalizá.
 
-Debe responder algo similar a:
+Al finalizar, el doctor vuelve a su pantalla y puede tocar **Siguiente** otra vez.
 
-```json
-{"ok":true,"database":"connected"}
-```
-
-Después abrí la raíz:
-
-```text
-https://TU-PROYECTO.vercel.app
-```
-
-Las dos computadoras pueden entrar a esa misma URL.
-
----
-
-## Flujo de uso
-
-### Computadora 1 — ingreso
-
-1. Abrir la pantalla **Cola**.
-2. Ingresar DNI.
-3. Si el paciente ya existe, no es necesario volver a escribir nombre/apellido.
-4. Si es nuevo, completar nombre y apellido.
-5. Pulsar **Agregar a la cola**.
-
-### Computadora 2 — consulta
-
-1. Mantener abierta la pantalla **Cola**.
-2. El paciente aparece automáticamente.
-3. Pulsar **SIGUIENTE**.
-4. Se abre directamente su consulta.
-5. Completar observaciones y de 1 a 5 medicaciones.
-6. Pulsar **Finalizar consulta**.
-
-### Exportar el cierre del día
-
-En la barra superior usar **Exportar hoy**.
-
-Se descarga:
-
-```text
-consultas-AAAA-MM-DD.docx
-```
-
-con columnas:
-
-```text
-Paciente | Medicación 1 | Medicación 2 | Medicación 3 | Medicación 4 | Medicación 5
-```
-
----
-
-## Desarrollo local con Docker
-
-Requisitos:
-
-- Node.js 22+
-- Docker Desktop
-
-### macOS / Linux
+## Desarrollo local
 
 ```bash
+npm install
 cp .env.example .env
-docker compose up -d
-npm install
-npm run setup
+npx prisma generate
+npx prisma migrate deploy
+npx prisma db seed
 npm run dev
 ```
 
-Abrir:
+Abrir `http://localhost:3000`.
 
-```text
-http://localhost:3000
-```
+## Salud de la base
 
-### Windows PowerShell
-
-```powershell
-Copy-Item .env.example .env
-docker compose up -d
-npm install
-npm run setup
-npm run dev
-```
-
----
-
-## Comandos útiles
-
-```bash
-npm run dev             # desarrollo
-npm run build           # validar build
-npm run db:migrate      # crear/aplicar migración local
-npm run db:deploy       # aplicar migraciones existentes (producción)
-npm run db:seed         # paciente demo
-npm run db:studio       # visor de base Prisma Studio
-```
-
-## Datos demo
-
-El seed crea un paciente de demostración:
-
-```text
-DNI: 30.111.222
-Nombre: Paciente Demostración
-```
-
-No es obligatorio ejecutar el seed en producción.
-
-## Estructura principal
-
-```text
-app/
-  api/
-    consultations/[id]/
-    export/today/
-    health/
-    queue/
-      enqueue/
-      next/
-  consultations/[id]/
-  patients/[id]/
-  patients/
-components/
-lib/
-prisma/
-  migrations/
-  schema.prisma
-  seed.ts
-vercel.json
-```
-
-## Notas sobre la cola
-
-El endpoint `POST /api/queue/next` usa una transacción PostgreSQL con `FOR UPDATE SKIP LOCKED`. Si dos solicitudes intentaran tomar al mismo tiempo al siguiente paciente, PostgreSQL evita que ambas reclamen el mismo registro.
-
-## Próximas mejoras previstas
-
-- Login y roles (recepción / profesional / administrador).
-- Autocompletado de medicaciones.
-- Editar datos básicos del paciente.
-- Reabrir/corregir una consulta con auditoría.
-- Exportar un rango de fechas.
-- Backups y auditoría detallada.
+`/api/health` debe responder con `database: connected` cuando la conexión a Neon está correcta.

@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getApiUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 
 export async function PUT(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const auth = await getApiUser(["DOCTOR"]);
+  if (!auth.user) return NextResponse.json({ error: auth.error }, { status: auth.status });
+
   const { id } = await context.params;
   const body = await request.json();
   const observations = String(body.observations ?? "").trim();
@@ -27,10 +31,7 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
 
     await tx.consultation.update({
       where: { id },
-      data: {
-        observations,
-        ...(finalize ? { status: "COMPLETED", completedAt: new Date() } : {}),
-      },
+      data: { observations, ...(finalize ? { status: "COMPLETED", completedAt: new Date() } : {}) },
     });
 
     if (finalize) {

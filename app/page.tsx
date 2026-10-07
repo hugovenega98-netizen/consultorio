@@ -1,7 +1,10 @@
-import { QueueDashboard } from "@/components/QueueDashboard";
+import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-export default function Home() {
-  return <QueueDashboard />;
+export default async function Home() {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  redirect(user.role === "DOCTOR" ? "/doctor" : "/reception");
 }

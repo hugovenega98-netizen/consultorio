@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server";
+import { getApiUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { argentinaDayRange } from "@/lib/format";
 
 export const runtime = "nodejs";
-
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const { start, end } = argentinaDayRange();
-  const [waiting, inProgress, completedToday] = await Promise.all([
+  const auth = await getApiUser(["RECEPTION", "DOCTOR"]);
+  if (!auth.user) return NextResponse.json({ error: auth.error }, { status: auth.status });
+
+  const [waiting, inProgress] = await Promise.all([
     prisma.queueItem.findMany({
       where: { status: "WAITING" },
       orderBy: { queuedAt: "asc" },
@@ -18,9 +19,6 @@ export async function GET() {
       where: { status: "IN_PROGRESS" },
       orderBy: { startedAt: "asc" },
       include: { consultation: { include: { patient: true } } },
-    }),
-    prisma.consultation.count({
-      where: { status: "COMPLETED", completedAt: { gte: start, lt: end } },
     }),
   ]);
 
@@ -32,5 +30,5 @@ export async function GET() {
     patient: item.consultation.patient,
   });
 
-  return NextResponse.json({ waiting: waiting.map(mapRow), inProgress: inProgress.map(mapRow), completedToday });
+  return NextResponse.json({ waiting: waiting.map(mapRow), inProgress: inProgress.map(mapRow) });
 }

@@ -1,17 +1,20 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { requirePageUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { formatDateTime, formatDni } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
 export default async function PatientProfile({ params }: { params: Promise<{ id: string }> }) {
+  await requirePageUser(["RECEPTION"]);
   const { id } = await params;
   const patient = await prisma.patient.findUnique({
     where: { id },
     include: {
       consultations: {
-        orderBy: { createdAt: "desc" },
+        where: { status: "COMPLETED" },
+        orderBy: { completedAt: "desc" },
         include: { medications: { orderBy: { position: "asc" } } },
       },
     },
@@ -21,20 +24,28 @@ export default async function PatientProfile({ params }: { params: Promise<{ id:
 
   return (
     <div>
-      <div className="actions" style={{ marginTop: 0, marginBottom: 16 }}><Link className="btn" href="/patients">← Pacientes</Link></div>
+      <div className="actions" style={{ marginTop: 0, marginBottom: 16 }}>
+        <Link className="btn" href="/reception">← Pacientes</Link>
+        <Link className="btn" href={`/reception/repetitions/${patient.id}`}>Nueva repetición</Link>
+      </div>
       <h1>{patient.firstName} {patient.lastName}</h1>
       <p className="muted">DNI {formatDni(patient.dni)} · {patient.consultations.length} consultas registradas</p>
 
-      <section className="card">
-        <h2>Historial</h2>
+      <section className="card patient-data">
+        <h2>Datos</h2>
+        <div className="info-grid">
+          <div><span className="muted">Teléfono</span><strong>{patient.phone || "—"}</strong></div>
+          <div><span className="muted">Dirección</span><strong>{patient.address || "—"}</strong></div>
+        </div>
+      </section>
+
+      <section className="card" style={{ marginTop: 20 }}>
+        <h2>Historial de consultas</h2>
         <div className="history">
-          {patient.consultations.length === 0 && <p className="muted">Todavía no tiene consultas.</p>}
+          {patient.consultations.length === 0 && <p className="muted">Todavía no tiene consultas finalizadas.</p>}
           {patient.consultations.map((consultation) => (
             <article className="history-entry" key={consultation.id}>
-              <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-                <h3>{formatDateTime(consultation.completedAt ?? consultation.createdAt)}</h3>
-                <Link className="btn" href={`/consultations/${consultation.id}`}>Abrir</Link>
-              </div>
+              <h3>{formatDateTime(consultation.completedAt ?? consultation.createdAt)}</h3>
               <p><strong>Observaciones:</strong> {consultation.observations || "Sin observaciones."}</p>
               <ul className="med-list">
                 {consultation.medications.length === 0 && <li>Sin medicaciones cargadas</li>}

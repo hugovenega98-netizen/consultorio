@@ -34,7 +34,7 @@ export function ConsultationForm({ consultationId, initialObservations, initialM
       return;
     }
     if (finalize) {
-      router.push("/");
+      router.push("/doctor");
       router.refresh();
       return;
     }

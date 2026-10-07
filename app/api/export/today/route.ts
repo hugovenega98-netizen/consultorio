@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { Document, HeadingLevel, Packer, Paragraph, Table, TableCell, TableRow, TextRun, WidthType } from "docx";
 import { prisma } from "@/lib/prisma";
+import { getApiUser } from "@/lib/auth";
 import { argentinaDayRange, argentinaToday, fullName } from "@/lib/format";
 
 export const runtime = "nodejs";
@@ -8,6 +9,8 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  const auth = await getApiUser(["RECEPTION"]);
+  if (!auth.user) return NextResponse.json({ error: auth.error }, { status: auth.status });
   const date = argentinaToday();
   const { start, end } = argentinaDayRange(date);
   const consultations = await prisma.consultation.findMany({
