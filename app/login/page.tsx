@@ -1,11 +1,11 @@
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, homeForRole, type AppRole } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const user = await getCurrentUser();
-  if (user) redirect(user.role === "DOCTOR" ? "/doctor" : "/reception");
+  if (user) redirect(homeForRole(user.role as AppRole));
 
   const { error } = await searchParams;
 

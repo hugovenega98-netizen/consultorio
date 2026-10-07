@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, homeForRole, type AppRole } from "@/lib/auth";
+import { GlobalPatientSearch } from "@/components/GlobalPatientSearch";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -10,23 +11,35 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const user = await getCurrentUser();
+  const role = user?.role as AppRole | undefined;
 
   return (
     <html lang="es">
       <body>
-        {user && (
+        {user && role && (
           <header className="topbar">
-            <Link href={user.role === "DOCTOR" ? "/doctor" : "/reception"} className="brand">Consultorio</Link>
+            <Link href={homeForRole(role)} className="brand">Consultorio</Link>
+            {(role === "RECEPTION" || role === "ADMIN") && <GlobalPatientSearch />}
             <nav>
-              {user.role === "RECEPTION" && (
+              {role === "RECEPTION" && (
                 <>
                   <Link href="/reception">Pacientes</Link>
                   <Link href="/reception/repetitions">Repeticiones</Link>
-                  <a href="/api/export/today">Exportar hoy</a>
+                  <a href="/api/export/today">Word</a>
+                  <a href="/api/export/today/pdf">PDF</a>
                 </>
               )}
-              {user.role === "DOCTOR" && <Link href="/doctor">Consulta</Link>}
-              <span className="role-pill">{user.role === "DOCTOR" ? "Doctor" : "Recepción"}</span>
+              {role === "DOCTOR" && <Link href="/doctor">Consulta</Link>}
+              {role === "ADMIN" && (
+                <>
+                  <Link href="/admin">Admin</Link>
+                  <Link href="/reception">Pacientes</Link>
+                  <Link href="/reception/repetitions">Repeticiones</Link>
+                  <a href="/api/export/today">Word</a>
+                  <a href="/api/export/today/pdf">PDF</a>
+                </>
+              )}
+              <span className="role-pill">{role === "DOCTOR" ? "Doctor" : role === "ADMIN" ? "Admin" : "Recepción"}</span>
               <form action="/api/auth/logout" method="post">
                 <button className="link-button" type="submit">Salir</button>
               </form>

@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
-  const auth = await getApiUser(["RECEPTION"]);
+  const auth = await getApiUser(["RECEPTION", "ADMIN"]);
   if (!auth.user) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
   const body = await request.json();

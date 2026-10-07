@@ -5,7 +5,7 @@ import { ReceptionDashboard } from "@/components/ReceptionDashboard";
 export const dynamic = "force-dynamic";
 
 export default async function ReceptionPage() {
-  await requirePageUser(["RECEPTION"]);
+  await requirePageUser(["RECEPTION", "ADMIN"]);
   const patients = await prisma.patient.findMany({
     orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
   });

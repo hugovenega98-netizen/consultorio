@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const auth = await getApiUser(["RECEPTION", "DOCTOR"]);
+  const auth = await getApiUser(["RECEPTION", "DOCTOR", "ADMIN"]);
   if (!auth.user) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
   const [waiting, inProgress] = await Promise.all([
@@ -34,7 +34,7 @@ export async function GET() {
 }
 
 export async function DELETE() {
-  const auth = await getApiUser(["RECEPTION"]);
+  const auth = await getApiUser(["RECEPTION", "ADMIN"]);
   if (!auth.user) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
   const result = await prisma.$transaction(async (tx) => {

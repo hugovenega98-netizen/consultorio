@@ -130,3 +130,48 @@ textarea { min-height: 170px; resize: vertical; }
 @media (max-width: 520px) {
   .queue-heading { align-items: stretch; flex-direction: column; }
 }
+
+/* v0.4 - búsqueda global, admin, notas y utilidades */
+select {
+  width: 100%; border: 1px solid #c9d5da; border-radius: 10px; padding: 11px 12px; background: #fff; color: var(--text); font: inherit;
+}
+select:focus { outline: 3px solid rgba(23,107,117,.13); border-color: var(--primary); }
+
+.global-search { position: relative; width: min(360px, 34vw); margin: 0 18px; }
+.global-search input { padding: 9px 11px; }
+.global-search-results {
+  position: absolute; top: calc(100% + 7px); left: 0; right: 0; background: #fff; border: 1px solid var(--border);
+  border-radius: 12px; box-shadow: 0 16px 38px rgba(23,33,38,.14); overflow: hidden; z-index: 30;
+}
+.global-search-results a { display: grid; gap: 3px; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+.global-search-results a:last-child { border-bottom: 0; }
+.global-search-results a:hover { background: #f4f8f8; }
+.global-search-results span, .global-search-empty { color: var(--muted); font-size: 12px; }
+.global-search-empty { padding: 12px; }
+
+.history-entry-heading, .section-heading-inline {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+}
+.history-entry-heading p { margin-top: 0; }
+.section-heading-inline h2 { margin-bottom: 4px; }
+.section-heading-inline p { margin-top: 0; }
+.recent-medications-card { margin-bottom: 20px; }
+
+.user-list { display: grid; gap: 10px; }
+.user-row {
+  display: grid; grid-template-columns: minmax(150px, 1fr) 160px 100px auto; align-items: center; gap: 12px;
+  padding: 13px; border: 1px solid var(--border); border-radius: 12px;
+}
+.user-row select { padding: 8px 10px; }
+
+@media (max-width: 1000px) {
+  .topbar { flex-wrap: wrap; padding-top: 8px; padding-bottom: 8px; gap: 8px; }
+  .global-search { order: 3; width: 100%; margin: 0; }
+  .topbar nav { margin-left: auto; }
+}
+
+@media (max-width: 760px) {
+  .user-row { grid-template-columns: 1fr; }
+  .user-row .row-actions { justify-content: stretch; }
+  .section-heading-inline { display: grid; }
+}

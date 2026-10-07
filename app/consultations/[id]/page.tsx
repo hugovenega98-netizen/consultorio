@@ -17,7 +17,7 @@ export default async function ConsultationPage({ params }: { params: Promise<{ i
 
   if (!consultation) notFound();
 
-  const previousConsultation = await prisma.consultation.findFirst({
+  const recentConsultations = await prisma.consultation.findMany({
     where: {
       patientId: consultation.patientId,
       id: { not: consultation.id },
@@ -25,9 +25,14 @@ export default async function ConsultationPage({ params }: { params: Promise<{ i
       createdAt: { lt: consultation.createdAt },
     },
     orderBy: { completedAt: "desc" },
+    take: 3,
     include: { medications: { orderBy: { position: "asc" } } },
   });
 
+  const previousConsultation = recentConsultations[0] ?? null;
+  const recentMedicationNames = Array.from(new Set(
+    recentConsultations.flatMap((item) => item.medications.map((medication) => medication.name)),
+  ));
   const completed = consultation.status === "COMPLETED";
 
   return (
@@ -59,11 +64,21 @@ export default async function ConsultationPage({ params }: { params: Promise<{ i
         )}
       </section>
 
+      <section className="card recent-medications-card">
+        <h2>Medicaciones recientes</h2>
+        <p className="muted">Resumen único de las últimas 3 consultas finalizadas.</p>
+        <ul className="med-list">
+          {recentMedicationNames.length === 0 && <li>Sin medicaciones previas</li>}
+          {recentMedicationNames.map((name) => <li key={name}>{name}</li>)}
+        </ul>
+      </section>
+
       {completed && <div className="notice success">Esta consulta está finalizada y queda en modo lectura.</div>}
       <ConsultationForm
         consultationId={consultation.id}
         initialObservations={consultation.observations}
         initialMedications={consultation.medications.map((m) => m.name)}
+        previousMedications={previousConsultation?.medications.map((m) => m.name) ?? []}
         isCompleted={completed}
       />
     </div>

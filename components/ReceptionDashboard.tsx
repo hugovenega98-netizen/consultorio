@@ -53,21 +53,31 @@ export function ReceptionDashboard({ initialPatients }: { initialPatients: Patie
     if (!term) return patients;
     return patients.filter((p) => {
       const name = `${p.firstName} ${p.lastName}`.toLowerCase();
-      return name.includes(term) || p.dni.includes(digits || term);
+      const phone = p.phone.replace(/\D/g, "");
+      return name.includes(term) || p.dni.includes(digits || term) || phone.includes(digits || term);
     });
   }, [patients, query]);
 
-  async function createPatient(event: React.FormEvent) {
-    event.preventDefault();
+  async function submitPatient(force = false) {
     setLoading(true);
     setMessage("");
     const response = await fetch("/api/patients", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+      body: JSON.stringify({ ...form, force }),
     });
     const result = await response.json();
     setLoading(false);
+
+    if (!response.ok && result.requiresConfirmation && Array.isArray(result.possibleDuplicates)) {
+      const candidates = result.possibleDuplicates
+        .map((patient: Patient) => `${patient.firstName} ${patient.lastName} · DNI ${formatDni(patient.dni)}${patient.phone ? ` · ${patient.phone}` : ""}`)
+        .join("\n");
+      const confirmed = window.confirm(`Posibles pacientes duplicados:\n\n${candidates}\n\n¿Querés crear el paciente igualmente?`);
+      if (confirmed) await submitPatient(true);
+      return;
+    }
+
     if (!response.ok) {
       setMessage(result.error ?? "No se pudo crear el paciente.");
       return;
@@ -75,6 +85,11 @@ export function ReceptionDashboard({ initialPatients }: { initialPatients: Patie
     setMessage(`${result.patient.firstName} ${result.patient.lastName} fue cargado.`);
     setForm({ dni: "", firstName: "", lastName: "", phone: "", address: "" });
     await refreshPatients();
+  }
+
+  async function createPatient(event: React.FormEvent) {
+    event.preventDefault();
+    await submitPatient(false);
   }
 
   async function enqueue(patientId: string) {
@@ -131,7 +146,7 @@ export function ReceptionDashboard({ initialPatients }: { initialPatients: Patie
         <Link className="btn" href="/reception/repetitions">Repeticiones</Link>
       </div>
 
-      {message && <div className={`notice ${message.includes("quedó") || message.includes("cargado") ? "success" : "error"}`}>{message}</div>}
+      {message && <div className={`notice ${message.includes("quedó") || message.includes("cargado") || message.includes("limpiada") || message.includes("vacía") ? "success" : "error"}`}>{message}</div>}
 
       <div className="grid grid-2 reception-grid">
         <section className="card">
@@ -192,7 +207,7 @@ export function ReceptionDashboard({ initialPatients }: { initialPatients: Patie
             <h2>Pacientes</h2>
             <p className="muted">{patients.length} pacientes cargados en la base.</p>
           </div>
-          <input className="search-input" placeholder="Buscar por DNI, nombre o apellido" value={query} onChange={(e) => setQuery(e.target.value)} />
+          <input className="search-input" placeholder="Buscar por DNI, nombre, apellido o teléfono" value={query} onChange={(e) => setQuery(e.target.value)} />
         </div>
         <div className="patient-list">
           {filtered.map((patient) => (

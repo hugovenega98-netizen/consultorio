@@ -7,10 +7,11 @@ type Props = {
   consultationId: string;
   initialObservations: string;
   initialMedications: string[];
+  previousMedications?: string[];
   isCompleted: boolean;
 };
 
-export function ConsultationForm({ consultationId, initialObservations, initialMedications, isCompleted }: Props) {
+export function ConsultationForm({ consultationId, initialObservations, initialMedications, previousMedications = [], isCompleted }: Props) {
   const router = useRouter();
   const [observations, setObservations] = useState(initialObservations);
   const [medications, setMedications] = useState<string[]>(
@@ -18,6 +19,11 @@ export function ConsultationForm({ consultationId, initialObservations, initialM
   );
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+
+  function copyPreviousMedications() {
+    setMedications(Array.from({ length: 5 }, (_, index) => previousMedications[index] ?? ""));
+    setMessage("Medicaciones anteriores copiadas. Revisalas antes de finalizar.");
+  }
 
   async function save(finalize: boolean) {
     setSaving(true);
@@ -48,8 +54,15 @@ export function ConsultationForm({ consultationId, initialObservations, initialM
       </label>
 
       <div style={{ marginTop: 20 }}>
-        <h2>Medicaciones</h2>
-        <p className="muted">Podés cargar de 1 a 5. Los campos vacíos no se guardan.</p>
+        <div className="section-heading-inline">
+          <div>
+            <h2>Medicaciones</h2>
+            <p className="muted">Podés cargar de 1 a 5. Los campos vacíos no se guardan.</p>
+          </div>
+          {!isCompleted && previousMedications.length > 0 && (
+            <button className="btn" type="button" onClick={copyPreviousMedications}>Copiar medicaciones anteriores</button>
+          )}
+        </div>
         <div className="med-fields">
           {medications.map((medication, index) => (
             <div className="med-row" key={index}>
@@ -71,7 +84,7 @@ export function ConsultationForm({ consultationId, initialObservations, initialM
           <button className="btn btn-primary" disabled={saving} onClick={() => save(true)}>Finalizar consulta</button>
         </div>
       )}
-      {message && <div className={`notice ${message.includes("guardada") ? "success" : "error"}`}>{message}</div>}
+      {message && <div className={`notice ${message.includes("guardada") || message.includes("copiadas") ? "success" : "error"}`}>{message}</div>}
     </div>
   );
 }

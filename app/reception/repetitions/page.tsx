@@ -6,7 +6,7 @@ import { formatDateTime, formatDni } from "@/lib/format";
 export const dynamic = "force-dynamic";
 
 export default async function RepetitionsPage() {
-  await requirePageUser(["RECEPTION"]);
+  await requirePageUser(["RECEPTION", "ADMIN"]);
   const [patients, repetitions] = await Promise.all([
     prisma.patient.findMany({ orderBy: [{ lastName: "asc" }, { firstName: "asc" }] }),
     prisma.repetition.findMany({
@@ -50,7 +50,10 @@ export default async function RepetitionsPage() {
             <article className="history-entry" key={repetition.id}>
               <h3>{repetition.patient.firstName} {repetition.patient.lastName}</h3>
               <div className="muted">{formatDateTime(repetition.createdAt)} · DNI {formatDni(repetition.patient.dni)}</div>
-              <p><strong>Observaciones:</strong> {repetition.observations || "Sin observaciones."}</p>
+              <div className="history-entry-heading">
+                <p><strong>Observaciones:</strong> {repetition.observations || "Sin observaciones."}</p>
+                <Link className="btn" href={`/reception/repetitions/${repetition.patient.id}?copy=${repetition.id}`}>Repetir</Link>
+              </div>
               <ul className="med-list">
                 {repetition.medications.map((med) => <li key={med.id}>{med.name}</li>)}
               </ul>

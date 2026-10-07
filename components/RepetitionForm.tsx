@@ -3,10 +3,18 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-export function RepetitionForm({ patientId }: { patientId: string }) {
+type Props = {
+  patientId: string;
+  initialObservations?: string;
+  initialMedications?: string[];
+};
+
+export function RepetitionForm({ patientId, initialObservations = "", initialMedications = [] }: Props) {
   const router = useRouter();
-  const [observations, setObservations] = useState("");
-  const [medications, setMedications] = useState<string[]>(Array.from({ length: 5 }, () => ""));
+  const [observations, setObservations] = useState(initialObservations);
+  const [medications, setMedications] = useState<string[]>(
+    Array.from({ length: 5 }, (_, index) => initialMedications[index] ?? ""),
+  );
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
 

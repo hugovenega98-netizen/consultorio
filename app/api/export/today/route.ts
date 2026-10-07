@@ -9,7 +9,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const auth = await getApiUser(["RECEPTION"]);
+  const auth = await getApiUser(["RECEPTION", "ADMIN"]);
   if (!auth.user) return NextResponse.json({ error: auth.error }, { status: auth.status });
   const date = argentinaToday();
   const { start, end } = argentinaDayRange(date);

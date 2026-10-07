@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { createSession, sessionCookie } from "@/lib/auth";
+import { createSession, homeForRole, sessionCookie, type AppRole } from "@/lib/auth";
 import { verifyPassword } from "@/lib/password";
 
 export const runtime = "nodejs";
@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
   }
 
   const { token, expiresAt } = await createSession(user.id);
-  const destination = user.role === "DOCTOR" ? "/doctor" : "/reception";
+  const destination = homeForRole(user.role as AppRole);
   const response = NextResponse.redirect(new URL(destination, request.url), 303);
   response.cookies.set(sessionCookie.name, token, { ...sessionCookie.options, expires: expiresAt });
   return response;

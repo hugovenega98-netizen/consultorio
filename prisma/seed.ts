@@ -1,18 +1,18 @@
 import { prisma } from "../lib/prisma";
 import { hashPassword } from "../lib/password";
 
+type SeedRole = "RECEPTION" | "DOCTOR" | "ADMIN";
+
 async function ensureUser(input: {
   username: string;
   password: string;
   displayName: string;
-  role: "RECEPTION" | "DOCTOR";
+  role: SeedRole;
 }) {
   const existing = await prisma.user.findUnique({ where: { username: input.username } });
   if (existing) {
-    await prisma.user.update({
-      where: { id: existing.id },
-      data: { displayName: input.displayName, role: input.role, active: true, passwordHash: hashPassword(input.password) },
-    });
+    // Once created, the web Admin panel is authoritative. Deploys must not
+    // overwrite password, role, display name or active state.
     return;
   }
 
@@ -41,7 +41,14 @@ async function main() {
     role: "DOCTOR",
   });
 
-  console.log("Seed listo: usuarios de Recepción y Doctor disponibles.");
+  await ensureUser({
+    username: (process.env.ADMIN_USERNAME || "admin").trim().toLowerCase(),
+    password: process.env.ADMIN_PASSWORD || "admin1234",
+    displayName: "Administrador",
+    role: "ADMIN",
+  });
+
+  console.log("Seed listo: usuarios base disponibles sin pisar contraseñas existentes.");
 }
 
 main()

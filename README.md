@@ -1,130 +1,143 @@
-# Consultorio MVP v0.3.1
+# Consultorio MVP v0.4
 
-Aplicación web para trabajar desde dos computadoras sobre la misma base Neon.
+Aplicación web para Vercel + Neon/PostgreSQL con dos puestos de trabajo y administración de usuarios.
 
 ## Roles
 
-### Recepción (`RECEPTION`)
-- Ve todos los pacientes cargados.
-- Busca por DNI, nombre o apellido.
-- Carga pacientes con DNI, nombre, apellido, teléfono y dirección.
-- Abre el perfil e historial de consultas finalizadas.
-- Envía pacientes a la cola del doctor.
-- Puede limpiar toda la queue con confirmación previa.
-- Tiene la pestaña **Repeticiones**.
-- Exporta las consultas finalizadas del día a `.docx`.
+### RECEPCIÓN
+- Lista de pacientes.
+- Buscador por DNI, nombre, apellido o teléfono.
+- Alta de pacientes con DNI, nombre, apellido, teléfono y dirección.
+- Detección de duplicados por DNI y advertencia de posibles duplicados por nombre/apellido o teléfono.
+- Perfil del paciente, historial de consultas y notas internas.
+- Envío a la cola.
+- Repeticiones y su historial separado.
+- Repetir una repetición anterior.
+- Limpiar queue.
+- Exportar consultas del día en DOCX o PDF.
 
-### Doctor (`DOCTOR`)
-- Ve solamente el puesto de consulta.
-- Botón **Siguiente** para tomar el primer paciente en espera.
-- Abre la consulta actual.
-- Durante la consulta ve la **última consulta finalizada anterior** de ese paciente, con observaciones y medicaciones.
-- No ve contador de consultas realizadas ni administración de pacientes.
+### DOCTOR
+- Solo puesto de consulta.
+- Botón SIGUIENTE / abrir paciente actual.
+- Última consulta anterior.
+- Resumen de medicaciones recientes de las últimas 3 consultas.
+- Botón para copiar medicaciones de la consulta anterior.
+- Observaciones y 1 a 5 medicaciones.
+- No ve notas internas ni gestión administrativa.
+
+### ADMIN
+- Panel `/admin`.
+- Crear usuarios.
+- Cambiar nombre visible, contraseña, rol y estado activo/inactivo.
+- Las contraseñas cambiadas desde el panel no se pisan en deploys posteriores.
+- Acceso de supervisión a pacientes y repeticiones.
+- Limpiar queue.
+- Exportar DOCX/PDF.
+
+## Buscador global
+
+Recepción y Admin tienen un buscador en el encabezado. Con dos o más caracteres consulta la base y permite abrir directamente un perfil sin volver al listado principal.
 
 ## Repeticiones
 
-Las repeticiones usan un formulario con observaciones y hasta cinco medicaciones, pero se guardan en tablas independientes (`Repetition` y `RepetitionMedication`).
+Las repeticiones usan tablas separadas (`Repetition` y `RepetitionMedication`). No aparecen como consultas realizadas y no se incluyen en el DOCX/PDF diario.
 
-Por diseño:
-- no aparecen en el historial de consultas del paciente;
-- no cuentan como consulta realizada;
-- no entran en el `.docx` diario de consultas;
-- sí quedan relacionadas al paciente y visibles desde la pestaña **Repeticiones** de Recepción.
+Cada paciente muestra su historial de repeticiones y permite usar `Repetir` para precargar observaciones y medicaciones de una anterior antes de guardar una nueva.
 
-## Stack
+## Notas internas
 
-- Next.js 16
-- React 19
-- Prisma 7
-- PostgreSQL / Neon
-- Vercel
-- Node.js 22+
+`Patient.internalNotes` se usa para notas administrativas. Solo Recepción y Admin las pueden ver/editar. No se muestran al Doctor y no se incluyen en exportaciones.
+
+## Base de datos
+
+PostgreSQL / Neon mediante Prisma.
+
+Relaciones principales:
+
+```text
+Patient
+  ├─ Consultation
+  │    ├─ Medication
+  │    └─ QueueItem
+  └─ Repetition
+       └─ RepetitionMedication
+
+User
+  └─ Session
+```
 
 ## Variables de entorno
 
 ```env
-DATABASE_URL="URL_POOLED_DE_NEON"
-DIRECT_URL="URL_DIRECTA_DE_NEON"
+DATABASE_URL="postgresql://...-pooler..."
+DIRECT_URL="postgresql://..."
 
 RECEPTION_USERNAME="recep"
-RECEPTION_PASSWORD="cambia-esta-clave"
+RECEPTION_PASSWORD="recep1234"
 DOCTOR_USERNAME="doc"
-DOCTOR_PASSWORD="cambia-esta-clave"
+DOCTOR_PASSWORD="doc1234"
+ADMIN_USERNAME="admin"
+ADMIN_PASSWORD="admin1234"
 ```
 
-`DATABASE_URL` debe ser la URL pooled de Neon (normalmente contiene `-pooler`).
-`DIRECT_URL` es la conexión directa de Neon.
+Las variables de usuarios se usan para CREAR el usuario si todavía no existe. A partir de ahí, el panel Admin manda: un nuevo deploy no sobrescribe contraseña, rol, nombre visible ni estado activo.
 
-Si no configurás las variables de usuarios, el seed usa temporalmente:
-- Recepción: `recep` / `recep1234`
-- Doctor: `doc` / `doc1234`
+Si no agregás `ADMIN_USERNAME` / `ADMIN_PASSWORD`, el primer deploy de v0.4 crea por defecto:
 
-## Deploy sobre un proyecto Vercel ya existente
+```text
+usuario: admin
+clave: admin1234
+```
 
-1. Agregá en **Vercel → Project → Settings → Environment Variables**:
-   - `RECEPTION_USERNAME`
-   - `RECEPTION_PASSWORD`
-   - `DOCTOR_USERNAME`
-   - `DOCTOR_PASSWORD`
-2. Conservá `DATABASE_URL` y `DIRECT_URL` que ya funcionan.
-3. Reemplazá el contenido del repo por esta versión.
-4. Ejecutá:
+Entrá y cambiala inmediatamente desde **Admin → Cambiar clave**.
+
+## Deploy de una instalación v0.3.x existente
+
+No hay que borrar Neon ni recrear la base.
+
+1. Reemplazá los archivos del repo con esta v0.4, conservando `.git` y `.env`.
+2. Ejecutá localmente si querés:
+
+```bash
+npm install
+npx prisma generate
+```
+
+3. Subí a GitHub:
 
 ```bash
 git add .
-git commit -m "Roles doctor recepcion y repeticiones"
+git commit -m "Consultorio v0.4 nuevas funciones"
 git push
 ```
 
-5. Vercel hará automáticamente:
+4. Vercel ejecuta automáticamente:
 
-```bash
+```text
 prisma generate
 prisma migrate deploy
 prisma db seed
 next build
 ```
 
-Las nuevas migraciones agregan:
-- campos teléfono/dirección;
-- usuarios, roles y sesiones;
-- repeticiones y sus medicaciones.
+La migración `20261007113000_admin_internal_notes`:
+- agrega `ADMIN` al enum `UserRole`;
+- agrega `Patient.internalNotes`;
+- conserva todos los pacientes, consultas, repeticiones y usuarios existentes.
 
-## Probar dos computadoras
+## Exportaciones
 
-En PC 1:
-1. Abrí la URL pública de Vercel.
-2. Iniciá sesión como Recepción.
-3. Creá o elegí un paciente.
-4. Tocá **Enviar a cola**.
+- DOCX: `/api/export/today`
+- PDF: `/api/export/today/pdf`
 
-En PC 2:
-1. Abrí exactamente la misma URL pública de Vercel.
-2. Iniciá sesión como Doctor.
-3. El paciente aparecerá como próximo en unos segundos.
-4. Tocá **Siguiente**.
-5. Se abre su consulta y arriba aparece su última consulta previa, si existe.
-6. Cargá observaciones/medicaciones y finalizá.
+Ambas incluyen solo consultas `COMPLETED` del día en horario de Argentina y listan horizontalmente paciente + hasta cinco medicaciones.
 
-Al finalizar, el doctor vuelve a su pantalla y puede tocar **Siguiente** otra vez.
+## Cola
 
-## Desarrollo local
+La cola se actualiza por polling. El botón `Siguiente` usa una operación transaccional con `FOR UPDATE SKIP LOCKED` para evitar que dos puestos reclamen al mismo paciente.
 
-```bash
-npm install
-cp .env.example .env
-npx prisma generate
-npx prisma migrate deploy
-npx prisma db seed
-npm run dev
-```
+`Limpiar queue` elimina los `QueueItem`. Si había consultas `QUEUED` o `IN_PROGRESS`, se marcan `CANCELLED`; no se borran pacientes ni consultas finalizadas.
 
-Abrir `http://localhost:3000`.
+## Node
 
-## Salud de la base
-
-`/api/health` debe responder con `database: connected` cuando la conexión a Neon está correcta.
-
-## Limpieza de queue
-
-Recepción dispone del botón **Limpiar queue**. La acción pide confirmación, elimina todas las entradas de `QueueItem` y marca como `CANCELLED` las consultas que todavía estaban `QUEUED` o `IN_PROGRESS`, de modo que esos pacientes puedan volver a enviarse a la cola. No elimina pacientes, consultas finalizadas, medicaciones ni repeticiones.
+El proyecto requiere Node 22 o superior.

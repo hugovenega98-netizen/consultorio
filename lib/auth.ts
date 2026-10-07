@@ -3,13 +3,19 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 
-export type AppRole = "RECEPTION" | "DOCTOR";
+export type AppRole = "RECEPTION" | "DOCTOR" | "ADMIN";
 
 const COOKIE_NAME = "consultorio_session";
 const SESSION_DAYS = 30;
 
 function hashToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
+}
+
+export function homeForRole(role: AppRole) {
+  if (role === "DOCTOR") return "/doctor";
+  if (role === "ADMIN") return "/admin";
+  return "/reception";
 }
 
 export async function createSession(userId: string) {
@@ -40,7 +46,7 @@ export async function getCurrentUser() {
 export async function requirePageUser(roles?: AppRole[]) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  if (roles && !roles.includes(user.role as AppRole)) redirect(user.role === "DOCTOR" ? "/doctor" : "/reception");
+  if (roles && !roles.includes(user.role as AppRole)) redirect(homeForRole(user.role as AppRole));
   return user;
 }
 

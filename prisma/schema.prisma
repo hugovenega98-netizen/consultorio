@@ -24,6 +24,7 @@ enum QueueStatus {
 enum UserRole {
   RECEPTION
   DOCTOR
+  ADMIN
 }
 
 model Patient {
@@ -33,6 +34,7 @@ model Patient {
   lastName      String
   phone         String         @default("")
   address       String         @default("")
+  internalNotes String         @default("")
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   consultations Consultation[]
